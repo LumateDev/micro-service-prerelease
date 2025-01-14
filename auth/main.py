@@ -4,11 +4,13 @@ import os
 from dotenv import load_dotenv
 import logging
 import aio_pika
+import httpx
 
 load_dotenv()
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger("auth-service")
 
 logger.info(f"Пробуем подключиться к RabbitMQ по параметрам: хост = {RABBITMQ_HOST}, порт = {RABBITMQ_PORT}")
-RABBITMQ_URL = f"amqp://guest:guest@rabbitmq/"
+RABBITMQ_URL = "amqp://guest:guest@rabbitmq/"
 
 
 async def send_response_to_queue(reply_to: str, response: dict, correlation_id: str):
@@ -53,39 +55,53 @@ async def process_message(queue_name: str, message: dict, reply_to: str, correla
     try:
         if queue_name == "registration_queue":
             logger.info("Обрабатываем сообщение из очереди регистрации...")
-            if "email" in message:
-                if message["email"] == "test@example.com":
-                    logger.info("Email совпадает с запрещённым для регистрации.")
-                    response = {"status": "failed", "message": "Пользователь с таким Email уже зарегистрирован!"}
-                else:
-                    logger.info("Email прошёл проверку, регистрация успешна.")
-                    response = {"status": "success", "message": "Регистрация прошла успешно!"}
+            if "email" in message and "password" in message:
+                async with httpx.AsyncClient() as client:
+                    registration_payload = {
+                        "name": message["name"],
+                        "email": message["email"],
+                        "password": message["password"],
+                    }
+                    response = await client.post("http://backend-db:8080/auth/registration", json=registration_payload)
+                    if response.status_code == 400:
+                        logger.info("Пользователь с таким email уже существует.")
+                        response_data = {"status": "failed", "message": response.json()["detail"]}
+                    else:
+                        logger.info("Регистрация прошла успешно.")
+                        response_data = {"status": "success", "message": "Регистрация прошла успешно!"}
             else:
                 logger.warning("Отсутствуют обязательные поля для регистрации!")
-                response = {"status": "failed", "message": "Отсутствуют обязательные поля для регистрации!"}
+                response_data = {"status": "failed", "message": "Отсутствуют обязательные поля для регистрации!"}
         elif queue_name == "authorization_queue":
             logger.info("Обрабатываем сообщение из очереди авторизации...")
-            if "email" in message:
-                if message["email"] == "test@example.com":
-                    logger.info("Email совпадает, авторизация успешна.")
-                    response = {"status": "success", "message": "Авторизация прошла успешно!"}
-                else:
-                    logger.info("Email не найден, авторизация провалена.")
-                    response = {"status": "failed", "message": "Пользователь с таким Email не найден!"}
+            if "email" in message and "password" in message:
+                async with httpx.AsyncClient() as client:
+                    login_payload = {
+                        "email": message["email"],
+                        "password": message["password"],
+                    }
+                    response = await client.post("http://backend-db:8080/auth/authorization", json=login_payload)
+                    if response.status_code == 404:
+                        logger.info("Пользователь не найден.")
+                        response_data = {"status": "failed", "message": "Пользователь не найден!"}
+                    elif response.status_code == 401:
+                        logger.info("Неверный пароль.")
+                        response_data = {"status": "failed", "message": "Неверный пароль!"}
+                    else:
+                        logger.info("Авторизация успешна.")
+                        response_data = {"status": "success", "message": "Авторизация прошла успешно!"}
             else:
                 logger.warning("Отсутствуют обязательные поля для авторизации!")
-                response = {"status": "failed", "message": "Отсутствуют обязательные поля для авторизации!"}
+                response_data = {"status": "failed", "message": "Отсутствуют обязательные поля для авторизации!"}
         else:
             logger.error(f"Неизвестная очередь: {queue_name}")
-            response = {"status": "failed", "message": "Неизвестная очередь!"}
+            response_data = {"status": "failed", "message": "Неизвестная очередь!"}
 
-        logger.info(f"Подготовлен ответ: {response}")
-        await send_response_to_queue(reply_to, response, correlation_id)
+        logger.info(f"Подготовлен ответ: {response_data}")
+        await send_response_to_queue(reply_to, response_data, correlation_id)
         logger.info(f"Ответ отправлен в очередь {reply_to}")
     except Exception as e:
         logger.error(f"Ошибка обработки сообщения: {e}", exc_info=True)
-
-
 
 async def listen_to_queue(queue_name: str):
     """

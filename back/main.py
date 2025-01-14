@@ -48,6 +48,7 @@ async def send_and_wait_for_response(queue_name: str, message: dict, response_qu
             # Callback для получения ответа
             async def on_message(message: aio_pika.IncomingMessage):
                 nonlocal response_data
+                logger.info(f"Пробуем получить ответ, сверяем message.correlation_id ({message.correlation_id}) с correlation_id ({correlation_id})")
                 if message.correlation_id == correlation_id:
                     response_data = json.loads(message.body.decode())
                     await message.ack()
@@ -87,7 +88,7 @@ async def registration_handler(user: User):
     try:
         response = await send_and_wait_for_response(
             queue_name="registration_queue",
-            message={"email": user.email, "password": user.password},
+            message={"name": user.name, "email": user.email, "password": user.password},
             response_queue="registration_response_queue",
         )
 

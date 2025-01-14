@@ -24,6 +24,7 @@ const Auth = () => {
         const response = await axios.post(
           "http://localhost:8000/registration",
           {
+            name: name,
             email: email,
             password: hashedPassword,
           }
