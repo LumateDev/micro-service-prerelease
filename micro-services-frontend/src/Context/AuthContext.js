@@ -3,7 +3,6 @@ import React, { createContext, useState, useEffect } from "react";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    // Проверяем localStorage при загрузке приложения
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         const savedAuth = localStorage.getItem("isAuthenticated");
         return savedAuth === "true";
@@ -13,19 +12,24 @@ export const AuthProvider = ({ children }) => {
         return localStorage.getItem("userName") || "";
     });
 
-    // Сохраняем состояние авторизации и имя пользователя в localStorage при изменении
+    const [userEmail, setUserEmail] = useState(() => {
+        return localStorage.getItem("userEmail") || "";
+    });
+
     useEffect(() => {
         localStorage.setItem("isAuthenticated", isAuthenticated);
         localStorage.setItem("userName", userName);
-    }, [isAuthenticated, userName]);
+        localStorage.setItem("userEmail", userEmail);
+    }, [isAuthenticated, userName, userEmail]);
 
     const logout = () => {
         setIsAuthenticated(false);
         setUserName("");
+        setUserEmail("");
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userName, setUserName, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userName, setUserName, userEmail, setUserEmail, logout }}>
             {children}
         </AuthContext.Provider>
     );

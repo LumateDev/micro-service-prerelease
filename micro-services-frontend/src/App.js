@@ -28,9 +28,8 @@ function App() {
                     path="/home"
                     element={isAuthenticated ? <HomePage /> : <Navigate to="/auth" />}
                 />
-                {/* Новые маршруты */}
                 <Route
-                    path="/сourse-enroll"
+                    path="/course-enroll"
                     element={isAuthenticated ? <CourseEnrollPage /> : <Navigate to="/auth" />}
                 />
                 <Route
