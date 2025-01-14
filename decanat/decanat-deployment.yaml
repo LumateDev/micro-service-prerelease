@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: decanat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: decanat
+  template:
+    metadata:
+      labels:
+        app: decanat
+    spec:
+      containers:
+        - name: decanat
+          image: aincolgon/decanat:latest
+          envFrom:
+            - configMapRef:
+                name: decanat-env
