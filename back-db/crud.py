@@ -4,7 +4,6 @@ from models import User, Exam, Retake, Enrolments_Exams, Enrolments_Retake
 from schemas import UserCreate, ExamCreate, RetakeCreate, EnrolmentExamCreate, EnrolmentRetakeCreate, UserUpdate
 
 
-# CRUD для пользователей
 async def create_user(db: AsyncSession, user: UserCreate):
     db_user = User(name=user.name, email=user.email, password=user.password)
     db.add(db_user)
@@ -55,10 +54,8 @@ async def delete_user(db: AsyncSession, user_id: int):
     return db_user
 
 
-# CRUD для экзаменов
 async def create_exam(db: AsyncSession, exam: ExamCreate):
-    # Валидатор в ExamCreate уже преобразовал строку в datetime.date
-    db_exam = Exam(name=exam.name, date=exam.date)  # exam.date уже является datetime.date
+    db_exam = Exam(name=exam.name, date=exam.date)
     db.add(db_exam)
     await db.commit()
     await db.refresh(db_exam)
@@ -75,10 +72,8 @@ async def get_exams(db: AsyncSession):
     return result.scalars().all()
 
 
-# CRUD для пересдач
 async def create_retake(db: AsyncSession, retake: RetakeCreate):
-    # Валидатор в RetakeCreate уже преобразовал строку в datetime.date
-    db_retake = Retake(name=retake.name, date=retake.date)  # retake.date уже является datetime.date
+    db_retake = Retake(name=retake.name, date=retake.date)
     db.add(db_retake)
     await db.commit()
     await db.refresh(db_retake)
@@ -95,18 +90,18 @@ async def get_retakes(db: AsyncSession):
     return result.scalars().all()
 
 
-# CRUD для записей на экзамены
 async def create_enrolment_exam(db: AsyncSession, enrolment: EnrolmentExamCreate):
     db_enrolment = Enrolments_Exams(
         email=enrolment.email,
         exam_id=enrolment.exam_id,
         type=enrolment.type,
-        date=enrolment.date  # Передаём значение date
+        date=enrolment.date
     )
     db.add(db_enrolment)
     await db.commit()
     await db.refresh(db_enrolment)
     return db_enrolment
+
 
 async def get_enrolment_exam_by_email_and_exam_id(db: AsyncSession, email: str, exam_id: int):
     """Проверяет, существует ли запись на экзамен с указанным email и exam_id."""
@@ -119,13 +114,12 @@ async def get_enrolment_exam_by_email_and_exam_id(db: AsyncSession, email: str, 
     return result.scalars().first()
 
 
-# CRUD для записей на пересдачи
 async def create_enrolment_retake(db: AsyncSession, enrolment: EnrolmentRetakeCreate):
     db_enrolment = Enrolments_Retake(
         email=enrolment.email,
         retake_id=enrolment.retake_id,
         type=enrolment.type,
-        date=enrolment.date  # Передаём значение date
+        date=enrolment.date
     )
     db.add(db_enrolment)
     await db.commit()
@@ -142,3 +136,25 @@ async def get_enrolment_retake_by_email_and_retake_id(db: AsyncSession, email: s
         )
     )
     return result.scalars().first()
+
+
+async def delete_enrolment_exam(db: AsyncSession, email: str, exam_id: int):
+    """Удаляет запись на экзамен."""
+    enrolment = await get_enrolment_exam_by_email_and_exam_id(db, email, exam_id)
+    if not enrolment:
+        return None
+
+    await db.delete(enrolment)
+    await db.commit()
+    return enrolment
+
+
+async def delete_enrolment_retake(db: AsyncSession, email: str, retake_id: int):
+    """Удаляет запись на пересдачу."""
+    enrolment = await get_enrolment_retake_by_email_and_retake_id(db, email, retake_id)
+    if not enrolment:
+        return None
+
+    await db.delete(enrolment)
+    await db.commit()
+    return enrolment

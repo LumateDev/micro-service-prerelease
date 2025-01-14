@@ -20,7 +20,7 @@ const Header = () => {
             <nav className="nav">
                 <ul>
                     <li>
-                        <Link to="/сourse-enroll">Запись на экзамен</Link>
+                        <Link to="/course-enroll">Запись на экзамен</Link>
                     </li>
                     <li>
                         <Link to="/retake-enroll">Запись на пересдачу</Link>

@@ -24,3 +24,37 @@ yarn-error.log*
 
 .idea
 .venv
+
+# Игнорировать папку node_modules
+micro-services-frontend/node_modules/
+
+# Игнорировать папку build
+micro-services-frontend/build/
+
+# Игнорировать логи и кэши
+micro-services-frontend/.log
+micro-services-frontend/.cache
+
+# Игнорировать настройки IDE
+.vscode/
+.idea/
+
+# Игнорировать папки __pycache__
+**/__pycache__/
+
+# Игнорировать виртуальное окружение
+.venv/
+venv/
+env/
+
+# Игнорировать логи и кэши
+*.log
+*.pyc
+
+# Игнорировать системные файлы
+.DS_Store
+Thumbs.db
+
+# Игнорировать временные файлы
+*.tmp
+*.temp
